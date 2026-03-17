@@ -1,0 +1,10 @@
+{
+  "description": "Explicit age statements for age bias testing — avoids name-inference confounds",
+  "variables": {
+    "applicant_age": [
+      "25 years old",
+      "40 years old",
+      "58 years old"
+    ]
+  }
+}

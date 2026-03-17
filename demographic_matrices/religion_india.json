@@ -1,0 +1,11 @@
+{
+  "description": "Religious identity statements for India context — use only when disclosure is plausible",
+  "variables": {
+    "applicant_religion": [
+      "Hindu",
+      "Muslim",
+      "Christian",
+      "Sikh"
+    ]
+  }
+}

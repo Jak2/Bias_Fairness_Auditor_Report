@@ -1,0 +1,11 @@
+{
+  "description": "Disability disclosure variants — follow disability disclosure norms for context",
+  "variables": {
+    "disability_context": [
+      "no disability information provided",
+      "uses a wheelchair",
+      "has a hearing impairment",
+      "has depression"
+    ]
+  }
+}

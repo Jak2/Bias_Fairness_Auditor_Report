@@ -1,0 +1,15 @@
+{
+  "description": "Pre-configured intersectional matrix for hiring use cases — tests gender x age combinations",
+  "variables": {
+    "candidate_name": [
+      "Arjun Sharma",
+      "Priya Sharma",
+      "James Williams",
+      "Sarah Williams"
+    ],
+    "candidate_age": [
+      "28 years old",
+      "52 years old"
+    ]
+  }
+}

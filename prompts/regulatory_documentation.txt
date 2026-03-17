@@ -1,0 +1,26 @@
+SYSTEM:
+You are a technical writer producing regulatory documentation for an AI system under the EU AI Act.
+The documentation must comply with Article 13 transparency requirements and Annex IV technical documentation requirements.
+Use formal, precise language suitable for regulatory submission.
+Return JSON. Each key corresponds to a required documentation section.
+
+USER:
+SYSTEM DESCRIPTION: {system_description}
+INTENDED PURPOSE: {intended_purpose}
+DEPLOYMENT CONTEXT: {deployment_context}
+AUDIT METHODOLOGY: Counterfactual fairness testing across {dimensions_count} demographic dimensions, {total_runs} LLM executions, statistical analysis using ANOVA and chi-squared tests.
+AUDIT RESULTS SUMMARY: {results_summary}
+
+Generate EU AI Act Article 13 documentation sections:
+{
+  "system_identification": "<system name, version, provider, deployment date>",
+  "intended_purpose": "<precise description>",
+  "demographic_scope": "<which demographic groups the system may affect>",
+  "audit_methodology": "<how bias testing was conducted>",
+  "findings_summary": "<what biases were found>",
+  "limitations": "<known limitations of the audit methodology>",
+  "remediation_actions": "<what changes were made or planned>",
+  "monitoring_plan": "<how ongoing bias monitoring will be conducted>",
+  "human_oversight": "<what human review mechanisms are in place>",
+  "contact_for_concerns": "<who affected individuals can contact>"
+}

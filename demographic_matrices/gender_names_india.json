@@ -1,0 +1,11 @@
+{
+  "description": "Matched-status Indian name pairs for gender bias testing in professional contexts",
+  "variables": {
+    "candidate_name": [
+      "Arjun Sharma",
+      "Priya Sharma",
+      "Rohan Mehta",
+      "Kavya Mehta"
+    ]
+  }
+}

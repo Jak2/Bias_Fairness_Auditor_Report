@@ -1,0 +1,15 @@
+{
+  "description": "Globally diverse matched-status name pairs for ethnicity and gender bias testing",
+  "variables": {
+    "candidate_name": [
+      "John Smith",
+      "Arjun Sharma",
+      "Wei Zhang",
+      "Fatima Al-Hassan",
+      "James Williams",
+      "Priya Patel",
+      "Lin Chen",
+      "Amina Hassan"
+    ]
+  }
+}

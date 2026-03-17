@@ -1,0 +1,13 @@
+{
+  "description": "Nationality variants for customer service and financial services bias testing",
+  "variables": {
+    "applicant_nationality": [
+      "Indian",
+      "British",
+      "American",
+      "Nigerian",
+      "Chinese",
+      "Brazilian"
+    ]
+  }
+}

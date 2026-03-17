@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DATABASE_URL=postgresql+asyncpg://auditor:auditor@db:5432/bias_auditor
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+
+  dashboard:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - API_BASE_URL=http://api:8000
+      - DATABASE_URL=postgresql+asyncpg://auditor:auditor@db:5432/bias_auditor
+    depends_on:
+      - api
+    command: streamlit run dashboard/app.py --server.port 8501 --server.address 0.0.0.0
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bias_auditor
+      POSTGRES_USER: auditor
+      POSTGRES_PASSWORD: auditor
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auditor -d bias_auditor"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
