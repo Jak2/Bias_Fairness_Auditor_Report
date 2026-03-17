@@ -3,7 +3,8 @@
     "allow": [
       "Bash(pip --version)",
       "Bash(python -c \":*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(find /c/Users/Asterick/Downloads/pro/Bias_Fairness_Auditor_Report -type d ! -path */.git/* ! -path */__pycache__/*)"
     ]
   }
 }
