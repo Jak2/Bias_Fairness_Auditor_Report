@@ -309,3 +309,45 @@ Spins up three services: the FastAPI REST API on port 8000, the Streamlit dashbo
 | `intersectional_hiring` | Gender × age Cartesian product — 4 names × 2 age brackets = 8 variants per run |
 
 ---
+
+## 8. Tech Stack & Key Design Decisions
+
+### Tech Stack
+
+| Layer | Technology | Reason |
+|-------|-----------|--------|
+| API framework | FastAPI | Async-native, auto-generates OpenAPI docs, Pydantic integration |
+| Configuration | Pydantic Settings | Type-safe env var parsing, single `get_settings()` call across all modules |
+| Async runtime | Python `asyncio` | Enables concurrent LLM calls without threads |
+| LLM clients | Anthropic SDK, OpenAI SDK, HTTPX (for Ollama) | Multi-provider without a heavyweight abstraction layer |
+| NLP / Natural Language Processing | VADER + `sentence-transformers` (`all-MiniLM-L6-v2`) | VADER for speed; sentence-transformers for semantic depth |
+| Statistics | SciPy | One-way ANOVA and Cohen's d without custom implementations |
+| Database | SQLAlchemy async + SQLite / PostgreSQL | Zero code change to switch environments; async ORM throughout |
+| Dashboard | Streamlit + Plotly | Rapid iteration on interactive UI; no JavaScript required |
+| PDF generation | fpdf2 | Pure Python — no OS-level binary dependencies, works in Docker without system packages |
+| Containerisation | Docker + Docker Compose | Single-command full-stack deployment |
+
+### Five Non-Obvious Design Decisions
+
+**1. `BiasReport` as the universal contract.**
+The Pydantic `BiasReport` model (defined in `auditor/report_models.py`) is consumed by the CLI, REST API, Streamlit dashboard, and PDF generator with zero translation between them. Adding a field in `report_models.py` propagates to every output automatically. Any type mismatch is caught at Pydantic validation time, not silently at runtime.
+
+**2. Async-first with semaphore rate limiting.**
+All LLM calls are dispatched concurrently using `asyncio.gather` in `auditor/llm_executor.py`. A `asyncio.Semaphore` caps the number of in-flight calls at `max_concurrent_calls` (default: 10, configured in `config.py`), preventing API rate-limit errors when auditing large matrices. A 100-variant × 5-run audit dispatches 500 calls; without the semaphore, this would exhaust API quotas immediately.
+
+**3. Two-layer sentiment scoring.**
+VADER (configured via `vader_neutral_threshold` in `config.py` at a default of 0.2) handles the vast majority of responses correctly and requires no model download. The transformer fallback (DistilBERT) only fires when VADER scores are ambiguously neutral — keeping latency and cost low for routine audits while maintaining accuracy for edge cases.
+
+**4. Blind LLM judge.**
+Demographic labels are stripped from responses before the judge model sees them in `auditor/analysis/llm_judge.py`. This prevents the judge from importing its own training-time demographic associations into the assessment — a common failure mode in AI evaluation pipelines.
+
+**5. fpdf2 over WeasyPrint or ReportLab.**
+fpdf2 is pure Python with no OS-level binary dependencies (no `libcairo`, no `libpango`). This means the Docker image needs no system packages beyond the Python runtime. The trade-off is limited Unicode support outside the Latin-1 range, handled by a `_safe()` encoder in `reporting/generator.py` that replaces em dashes, en dashes, smart quotes, and bullet characters with ASCII equivalents.
+
+### On the "Length" Weight
+
+The configuration file `config.py` defines a `bias_score_weights` dictionary that includes a `length` entry (0.15 weight). This weight is reserved for response length variation analysis. However, in the current implementation within `auditor/bias_scorer.py`, the composite score normalization (line 30) excludes this weight and only averages the four active pipeline weights: sentiment, semantic, structural, and judge. Length variation is tracked separately as an alert threshold (`length_cv_alert` in `config.py`) rather than folded into the composite score formula.
+
+---
+
+*Report generated: 2026-06-22 | Author: Jaya Arun Kumar Tulluri | Project version: 1.0*
