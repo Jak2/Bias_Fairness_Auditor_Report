@@ -32,3 +32,25 @@ When bias is detected, the tool generates concrete recommendations for rewriting
 The tool supports three LLM providers (Anthropic Claude, OpenAI, and local Ollama models), runs via a web dashboard, a Command-Line Interface (CLI), or a REST Application Programming Interface (API), and can be deployed with a single Docker command.
 
 ---
+
+## 2. Problem & Motivation
+
+### The Invisible Bias Problem
+
+When an AI system is used to write candidate assessments, approve loan applications, or handle customer service queries, it processes names, ages, and other demographic signals embedded in prompts — even when those signals are irrelevant to the task. Research has repeatedly shown that LLMs produce subtly different outputs depending on whether a candidate is named "Arjun Sharma" or "James Williams", whether a customer is described as 28 or 52 years old, or whether a loan applicant's religion is mentioned in passing.
+
+These differences are not always obvious. A model might not refuse to help with one group and help with another — it might simply write a warmer assessment, include more specific career advice, or use more encouraging language for some groups than others. At scale — across millions of decisions — these subtle differences cause real harm.
+
+### Why Existing Approaches Fall Short
+
+Manual spot-checking (asking a human to read a handful of responses side-by-side) is not statistically credible. A single run of a prompt does not tell you whether a difference is a genuine bias signal or random variation — LLMs are non-deterministic and will produce different outputs each time. You need multiple runs per demographic variant and a statistical test to separate signal from noise.
+
+### The Regulatory Pressure
+
+The EU AI Act, which came into force in 2024, classifies AI systems used in hiring, lending, education, and essential services as "high-risk". For these systems, Article 9 requires documented bias testing before deployment, and Article 13 requires that deploying organisations be able to explain the system's behaviour to regulators on request. Similar requirements exist under the Equal Employment Opportunity Commission (EEOC) guidelines in the United States and the Reserve Bank of India (RBI) AI governance guidelines.
+
+### The Gap This Tool Fills
+
+There was no open-source tool that combined: (1) automated, multi-run counterfactual testing across configurable demographic dimensions, (2) statistically rigorous significance testing, and (3) ready-to-submit regulatory documentation. This project builds exactly that — a single audit run produces the evidence, the statistics, and the paperwork.
+
+---
