@@ -155,7 +155,7 @@ Each of the four analysis pipelines operates independently on the same set of LL
 
 **What it measures:** Whether the AI's tone is systematically more positive or negative for some demographic groups.
 
-**Two-layer approach:** VADER (Valence Aware Dictionary and sEntiment Reasoner) scores all responses first — it is rule-based, instant, and requires no model download. If all scores cluster near neutral (mean absolute value below 0.2 and standard deviation below 0.15), the pipeline switches to a DistilBERT transformer model (`distilbert-base-uncased-finetuned-sst-2-english`) for finer discrimination. The neutral threshold of 0.2 is set via `vader_neutral_threshold` in `config.py`.
+**Two-layer approach:** VADER scores all responses first — it is rule-based, instant, and requires no model download. If all scores cluster near neutral (mean absolute value below 0.2 and standard deviation below 0.15), the pipeline switches to a DistilBERT transformer model (`distilbert-base-uncased-finetuned-sst-2-english`) for finer discrimination. The neutral threshold of 0.2 is set via `vader_neutral_threshold` in `config.py`.
 
 **Statistics:** Responses are grouped by demographic value. One-way Analysis of Variance (ANOVA) tests whether the group means differ significantly (significance threshold: p < 0.05). Cohen's d measures the effect size — the practical magnitude of the difference, not just its statistical significance.
 
@@ -256,7 +256,7 @@ streamlit run dashboard/app.py
 
 Paste a prompt template with `{{placeholders}}`, select a demographic matrix from the sidebar, choose a number of runs per variant (1–10), and click **Start Audit**. Results are displayed across five tabs — Overview, Sentiment, Response Explorer, Statistical Results, and Remediation Workshop — and can be downloaded as JSON or PDF.
 
-### Mode 2 — Command-Line Interface
+### Mode 2 — CLI
 
 ```bash
 # Basic audit
@@ -320,7 +320,7 @@ Spins up three services: the FastAPI REST API on port 8000, the Streamlit dashbo
 | Configuration | Pydantic Settings | Type-safe env var parsing, single `get_settings()` call across all modules |
 | Async runtime | Python `asyncio` | Enables concurrent LLM calls without threads |
 | LLM clients | Anthropic SDK, OpenAI SDK, HTTPX (for Ollama) | Multi-provider without a heavyweight abstraction layer |
-| NLP / Natural Language Processing | VADER + `sentence-transformers` (`all-MiniLM-L6-v2`) | VADER for speed; sentence-transformers for semantic depth |
+| Natural Language Processing (NLP) | VADER + `sentence-transformers` (`all-MiniLM-L6-v2`) | VADER for speed; sentence-transformers for semantic depth |
 | Statistics | SciPy | One-way ANOVA and Cohen's d without custom implementations |
 | Database | SQLAlchemy async + SQLite / PostgreSQL | Zero code change to switch environments; async ORM throughout |
 | Dashboard | Streamlit + Plotly | Rapid iteration on interactive UI; no JavaScript required |
