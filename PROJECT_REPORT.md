@@ -54,3 +54,40 @@ The EU AI Act, which came into force in 2024, classifies AI systems used in hiri
 There was no open-source tool that combined: (1) automated, multi-run counterfactual testing across configurable demographic dimensions, (2) statistically rigorous significance testing, and (3) ready-to-submit regulatory documentation. This project builds exactly that — a single audit run produces the evidence, the statistics, and the paperwork.
 
 ---
+
+## 3. How It Works — Plain English
+
+### The Core Idea: Counterfactual Fairness Testing
+
+The tool uses a technique called counterfactual fairness testing. The idea is simple: take a prompt template with a placeholder (for example, `{{candidate_name}}`), replace that placeholder with every name in the test list — "Arjun Sharma", "Priya Sharma", "James Williams", "Sarah Williams" — and run each version through the AI model multiple times. Everything else in the prompt stays identical. Any differences in the AI's outputs can only be explained by the demographic signal in the placeholder.
+
+Think of it as A/B testing for fairness: instead of measuring conversion rates, we measure equitable treatment.
+
+### The Four Measurement Lenses
+
+Each batch of responses is analysed through four independent lenses:
+
+**1. Tone** — Does the AI sound warmer, more dismissive, more encouraging, or more formal for some groups than others? This is measured using VADER (Valence Aware Dictionary and sEntiment Reasoner), a rule-based sentiment scoring tool, with a transformer-based model as a fallback for ambiguous cases.
+
+**2. Content** — Does the AI say substantively different things? Responses are converted into numerical vectors using a sentence-embedding model, and the similarity between responses for different demographic groups is measured. A large gap indicates the model is producing genuinely different content, not just stylistic variation.
+
+**3. Structure** — Does the AI write longer, more specific, or more complete responses for some groups? This is measured using heuristics: word count, use of concrete numbers and proper nouns, completeness relative to the questions asked, and vocabulary sophistication.
+
+**4. AI Judge** — A second AI (also Claude) reads pairs of responses with all demographic labels removed, and rates them for tone, substance, and assumptions. Because the judge cannot see who the responses are about, it cannot import its own demographic biases into the assessment.
+
+### The Bias Score
+
+Each lens produces a score from 0 to 100. These are combined into a weighted composite score, which maps to a four-band verdict:
+
+| Score | Verdict | Meaning |
+|-------|---------|---------|
+| 0–20 | **Pass** | No meaningful bias detected |
+| 21–40 | **Review** | Monitor and document |
+| 41–60 | **Concern** | Redesign prompt before deployment |
+| 61–100 | **Fail** | Halt deployment, remediate immediately |
+
+### After Detection
+
+If the verdict is Concern or Fail, the tool calls the AI a third time to generate specific prompt rewriting recommendations — explaining what in the prompt is likely causing the bias and suggesting concrete alternative wording. A PDF audit report is generated automatically, structured to satisfy EU AI Act Article 13 documentation requirements.
+
+---
