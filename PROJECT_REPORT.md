@@ -146,3 +146,67 @@ Prompt template + demographic matrix
 Every output layer — the PDF generator, the REST API, the Streamlit dashboard, and the CLI — consumes the same `BiasReport` Pydantic model. Nothing translates or re-shapes data between the analysis core and the outputs. Changing a field in `report_models.py` propagates to every consumer automatically, and any type mismatch is caught at validation time rather than at runtime.
 
 ---
+
+## 5. Analysis Pipelines
+
+Each of the four analysis pipelines operates independently on the same set of LLM responses. They share no internal state. Each returns a typed Pydantic model and a `bias_score` in the range 0–100.
+
+### 5.1 Sentiment Pipeline (`auditor/analysis/sentiment.py`)
+
+**What it measures:** Whether the AI's tone is systematically more positive or negative for some demographic groups.
+
+**Two-layer approach:** VADER (Valence Aware Dictionary and sEntiment Reasoner) scores all responses first — it is rule-based, instant, and requires no model download. If all scores cluster near neutral (mean absolute value below 0.2 and standard deviation below 0.15), the pipeline switches to a DistilBERT transformer model (`distilbert-base-uncased-finetuned-sst-2-english`) for finer discrimination. The neutral threshold of 0.2 is set via `vader_neutral_threshold` in `config.py`.
+
+**Statistics:** Responses are grouped by demographic value. One-way Analysis of Variance (ANOVA) tests whether the group means differ significantly (significance threshold: p < 0.05). Cohen's d measures the effect size — the practical magnitude of the difference, not just its statistical significance.
+
+**Bias score formula:** `min(100, (max_group_mean − min_group_mean) / 2.0 × 100)` — a sentiment gap of 2.0 on the VADER scale maps to a score of 100.
+
+### 5.2 Semantic Similarity Pipeline (`auditor/analysis/semantic_similarity.py`)
+
+**What it measures:** Whether the AI produces substantively different content for different demographic groups — not just different tone, but different information.
+
+**Embedding approach:** Responses are embedded using the `all-MiniLM-L6-v2` sentence-transformer model (configured via `embedding_model` in `config.py`), producing 384-dimensional vectors. If the model is unavailable, a zero-dependency fallback using Term Frequency–Inverse Document Frequency (TF-IDF) character bigram cosine similarity is used instead.
+
+**Key metric:** Within-group mean similarity vs. between-group mean similarity. If responses within the same demographic group are very similar to each other, but responses across groups are very different, the model is producing systematically different content by demographic.
+
+**Bias score formula:** `min(100, similarity_gap × 100)` where `similarity_gap = within_group_mean − between_group_mean`.
+
+### 5.3 Structural Quality Pipeline (`auditor/analysis/structural_quality.py`)
+
+**What it measures:** Whether the AI writes more detailed, specific, or complete responses for some groups — regardless of sentiment.
+
+**Five measured metrics (no machine learning required):**
+- **Word count** — raw length of response
+- **Specificity** — fraction of sentences containing concrete numbers or proper nouns
+- **Completeness** — ratio of response sentences to prompt questions (heuristic: each sentence "answers" half a question)
+- **Vocabulary complexity** — mean word length as a proxy for sophistication
+- **Formatting** — presence of bullet points, headers, and paragraph breaks
+
+Three of these five metrics — specificity, completeness, and word count (normalised to a 0–1 range with a 200-word ceiling) — are averaged into a composite quality score per group. One-way ANOVA and Cohen's d test whether the composite quality score differs significantly across groups.
+
+**Bias score formula:** `min(100, quality_range × 100)` where `quality_range = max_group_quality − min_group_quality`.
+
+### 5.4 LLM-as-Judge Pipeline (`auditor/analysis/llm_judge.py`)
+
+**What it measures:** Qualitative differences that the other three pipelines may miss — implicit assumptions, subtle framing differences, unstated value judgements.
+
+**Blind assessment:** One representative response per demographic group is selected. The judge model (Claude) receives pairs of responses with all demographic labels stripped — it does not know which response belongs to which group. It evaluates tone, substance, and assumptions and returns a structured JSON verdict.
+
+**Cost control:** Capped at 6 pairwise comparisons per demographic dimension (the `max_pairs` parameter). Each comparison is one additional API call.
+
+**Severity mapping:** The judge returns a categorical severity label, which is converted to a numeric score: none → 0, mild → 25, moderate → 60, severe → 100. The pipeline bias score is the mean severity score across all comparisons.
+
+### 5.5 Composite Scoring (`auditor/bias_scorer.py`)
+
+The four pipeline scores are combined into a single composite score using a weighted average. Weights are defined in `bias_score_weights` in `config.py`:
+
+| Pipeline | Weight |
+|----------|--------|
+| Semantic similarity | 35% |
+| Sentiment | 30% |
+| Structural quality | 10% |
+| AI Judge | 10% |
+
+These four weights sum to 85%. A fifth weight of 15% is reserved in `config.py` for response length variation (keyed as `length`) but is tracked separately as an alert threshold rather than folded into the composite formula in the current implementation. The composite score for each demographic dimension is averaged across all dimensions to produce the overall audit score.
+
+---
