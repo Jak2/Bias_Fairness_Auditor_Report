@@ -91,3 +91,58 @@ Each lens produces a score from 0 to 100. These are combined into a weighted com
 If the verdict is Concern or Fail, the tool calls the AI a third time to generate specific prompt rewriting recommendations — explaining what in the prompt is likely causing the bias and suggesting concrete alternative wording. A PDF audit report is generated automatically, structured to satisfy EU AI Act Article 13 documentation requirements.
 
 ---
+
+## 4. System Architecture
+
+The project is organised into six layers. Each layer has one clear responsibility and communicates with adjacent layers through a single shared data contract: the `BiasReport` Pydantic model.
+
+### Module Map
+
+| Module | Responsibility |
+|--------|---------------|
+| `config.py` | Central configuration — all environment variables, thresholds, and file paths in one Pydantic Settings object, loaded once and cached |
+| `auditor/engine.py` | Audit orchestrator — runs the four-step pipeline and returns a `BiasReport` |
+| `auditor/variant_generator.py` | Prompt variant engine — takes a template with `{{placeholders}}` and a demographic matrix, returns the Cartesian product of all variant prompts |
+| `auditor/llm_executor.py` | Async LLM runner — executes all variants concurrently across Claude, OpenAI, or Ollama, with a semaphore to cap concurrent API calls |
+| `auditor/analysis/` | Four independent analysis pipelines (sentiment, semantic similarity, structural quality, AI judge) |
+| `auditor/bias_scorer.py` | Composite score calculator — weighted average of pipeline signals, verdict banding |
+| `auditor/enrichment.py` | Post-audit LLM enrichment — executive summary, remediation recommendations, EU AI Act regulatory documentation |
+| `auditor/report_models.py` | Pydantic data contracts — the single source of truth for all data shapes across every layer |
+| `database/` | SQLAlchemy async Object-Relational Mapper (ORM) — SQLite for local development, PostgreSQL for production |
+| `api/` | FastAPI REST API — three routers: audits, demographic matrices, PDF reports |
+| `dashboard/` | Streamlit five-tab User Interface (UI) with Plotly visualisations |
+| `reporting/generator.py` | PDF generator — builds EU AI Act Article 13 compliant audit reports using fpdf2 |
+| `demographic_matrices/` | JavaScript Object Notation (JSON) matrix definitions for gender, age, nationality, religion, disability, and intersectional combinations |
+| `prompts/` | Prompt templates for the AI judge and the enrichment calls |
+
+### Data Flow
+
+```
+Prompt template + demographic matrix
+        ↓
+  variant_generator.py  →  [VariantPrompt × N]
+        ↓
+  llm_executor.py       →  [LLMResponse × N × runs]
+        ↓
+  analysis/ (×4)        →  SentimentAnalysis, SemanticSimilarityAnalysis,
+                            StructuralQualityAnalysis, JudgeAnalysis
+        ↓
+  bias_scorer.py        →  DimensionBiasResult × dimensions
+        ↓
+  engine.py             →  BiasReport
+        ↓
+  enrichment.py         →  BiasReport (with summary + remediation + regulatory docs)
+        ↓
+  ┌─────────────────────────────────────────┐
+  │  reporting/  →  PDF                     │
+  │  api/        →  JSON over HTTP          │
+  │  dashboard/  →  Streamlit tabs          │
+  │  cli.py      →  Terminal output + files │
+  └─────────────────────────────────────────┘
+```
+
+### The `BiasReport` Contract
+
+Every output layer — the PDF generator, the REST API, the Streamlit dashboard, and the CLI — consumes the same `BiasReport` Pydantic model. Nothing translates or re-shapes data between the analysis core and the outputs. Changing a field in `report_models.py` propagates to every consumer automatically, and any type mismatch is caught at validation time rather than at runtime.
+
+---
