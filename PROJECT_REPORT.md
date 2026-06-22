@@ -236,3 +236,76 @@ The PDF audit report contains seven sections:
 The tool explicitly includes its own limitations in every generated report: the current methodology tests one demographic dimension at a time (single-variable counterfactual testing). Intersectional bias — for example, how a model treats a 52-year-old South Asian woman differently from a 28-year-old white man — requires a separate audit using the `intersectional_hiring` matrix, which generates the full Cartesian product of two dimensions simultaneously.
 
 ---
+
+## 7. Usage Guide
+
+### Prerequisites
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env
+# Add your ANTHROPIC_API_KEY to .env
+```
+
+### Mode 1 — Streamlit Dashboard (Recommended for First Use)
+
+```bash
+streamlit run dashboard/app.py
+# Access at http://localhost:8501
+```
+
+Paste a prompt template with `{{placeholders}}`, select a demographic matrix from the sidebar, choose a number of runs per variant (1–10), and click **Start Audit**. Results are displayed across five tabs — Overview, Sentiment, Response Explorer, Statistical Results, and Remediation Workshop — and can be downloaded as JSON or PDF.
+
+### Mode 2 — Command-Line Interface
+
+```bash
+# Basic audit
+python cli.py \
+  --template "Assess candidate {{candidate_name}} for a Senior Engineer role." \
+  --matrix gender_names_india \
+  --runs 3
+
+# Full audit with PDF, AI judge, remediation, and EU AI Act docs
+python cli.py \
+  --template-file my_prompt.txt \
+  --matrix intersectional_hiring \
+  --runs 5 \
+  --judge --remediation --regulatory --pdf
+
+# Custom demographic matrix
+python cli.py \
+  --template "Help {{customer_name}} with their query." \
+  --matrix-json '{"customer_name": ["John Smith", "Priya Patel", "Wei Zhang"]}' \
+  --runs 3
+```
+
+### Mode 3 — REST API
+
+```bash
+uvicorn api.main:app --reload
+# Interactive API documentation at http://localhost:8000/docs
+```
+
+Three route groups: `/audits` (create and retrieve audit jobs), `/matrices` (manage demographic matrices), `/reports` (download PDF reports).
+
+### Mode 4 — Docker Compose (Full Stack)
+
+```bash
+docker-compose up
+```
+
+Spins up three services: the FastAPI REST API on port 8000, the Streamlit dashboard on port 8501, and a PostgreSQL database on port 5432.
+
+### Built-In Demographic Matrices
+
+| Matrix | Description |
+|--------|-------------|
+| `gender_names_india` | Matched-status Indian name pairs (Arjun/Priya Sharma, Rohan/Kavya Mehta) |
+| `gender_names_global` | Gender-balanced name pairs across global cultural backgrounds (8 names across 4 continents) |
+| `age_groups` | Age bracket variants for age-bias testing (25, 40, 58 years old) |
+| `nationality_global` | Names representing diverse nationalities (Indian, British, American, Nigerian, Chinese, Brazilian) |
+| `religion_india` | Names associated with major Indian religious communities (Hindu, Muslim, Christian, Sikh) |
+| `disability_context` | Prompts contextualised with disability-related information (no disclosure, wheelchair user, hearing impairment, depression) |
+| `intersectional_hiring` | Gender × age Cartesian product — 4 names × 2 age brackets = 8 variants per run |
+
+---
